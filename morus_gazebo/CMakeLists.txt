@@ -128,6 +128,15 @@ find_package(Eigen REQUIRED)
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
+
+find_library(UUID_LIBRARY uuid REQUIRED)
+if (UUID_LIBRARY AND NOT TARGET UUID::UUID)
+  add_library(UUID::UUID INTERFACE IMPORTED)
+  set_target_properties(UUID::UUID PROPERTIES
+    INTERFACE_LINK_LIBRARIES ${UUID_LIBRARY})
+endif()
+
+
 catkin_package(
 INCLUDE_DIRS include launch plugins worlds ${Eigen_INCLUDE_DIRS}
 	LIBRARIES morus_gazebo

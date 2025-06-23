@@ -11,7 +11,8 @@ BatteryStatus::BatteryStatus()
 
 BatteryStatus::~BatteryStatus()
 {
-    event::Events::DisconnectWorldUpdateBegin(this->updateConnection);
+  if (this->updateConnection)
+  this->updateConnection.reset();
     if (this->rosnode_)
     { 
         this->rosnode_->shutdown();
@@ -73,7 +74,7 @@ void BatteryStatus::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
 
 void BatteryStatus::OnUpdate()
 {
-    common::Time cur_time = this->world->GetSimTime();
+    common::Time cur_time = this->world->SimTime();
 
     // Get new commands/state
     callback_queue_.callAvailable();

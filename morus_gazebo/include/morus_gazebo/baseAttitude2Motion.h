@@ -52,7 +52,7 @@ namespace gazebo
 	std::vector<ros::Subscriber> gmMsg_subscribers_;
 	// Vector holding information on received thrust forces
 	std::vector<double> gmMsg_thrust_;
-	math::Vector3 omega_body_frame_;
+	ignition::math::Vector3d omega_body_frame_;
 	/// This is IMU msg callback - receives IMU status of the UAV
 	void onImuMsg(const sensor_msgs::ImuPtr& msg);
 	/// Thi is gm status callback - receives GMStatsu msgs (forces, speed, etc..)

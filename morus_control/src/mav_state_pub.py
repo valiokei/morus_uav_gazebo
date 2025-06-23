@@ -61,5 +61,5 @@ if __name__ == '__main__':
 
     rospy.init_node('mav_vel_publisher')
     vel_pub = VelocityPublisher()
-    print "Starting publishing"
+    print ("Starting publishing")
     vel_pub.run()

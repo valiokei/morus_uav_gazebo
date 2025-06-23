@@ -8,7 +8,7 @@ BaseAttitude2Motion::BaseAttitude2Motion(){}
 
 BaseAttitude2Motion::~BaseAttitude2Motion()
 {
-    event::Events::DisconnectWorldUpdateBegin(this->updateConnection);
+    if (this->updateConnection) this->updateConnection.reset();
     if (this->rosnodeHandle_)
     { 
         this->rosnodeHandle_->shutdown();
@@ -77,9 +77,9 @@ void BaseAttitude2Motion::onImuMsg(const sensor_msgs::ImuPtr& msg)
 {
   // At the moment we are only concerned with body frame angular velocity 
   // which can be applied to the Gazebo UAV body.
-  this->omega_body_frame_.x = msg->angular_velocity.x;
-  this->omega_body_frame_.y = msg->angular_velocity.y;
-  this->omega_body_frame_.z = msg->angular_velocity.z;
+  this->omega_body_frame_.X() = msg->angular_velocity.x;
+  this->omega_body_frame_.Y() = msg->angular_velocity.y;
+  this->omega_body_frame_.Z() = msg->angular_velocity.z;
 }
 
 void BaseAttitude2Motion::onIceMsg(const morus_uav_ros_msgs::GmStatusPtr& msg)//,const std::string& topic) //const morus_uav_ros_msgs::GmStatusPtr& msg)
@@ -100,16 +100,16 @@ void BaseAttitude2Motion::onUpdate()
 {
   // C denotes child frame, P parent frame, and W world frame.
   // Further C_pose_W_P denotes pose of P wrt. W expressed in C.
-  math::Vector3 C_linear_velocity_W_C = link_->GetRelativeLinearVel();
+  ignition::math::Vector3d C_linear_velocity_W_C = link_->RelativeLinearVel();
   //     30kg*9.81m/s^2*sin(15deg)
   // B = -------------------------    <--- wind resistance
   //             (1 m/s)^2*4
   double B = -30*9.81*0.2588190451/4;
-  math::Vector3 C_drag_W_C(B*C_linear_velocity_W_C[0]*fabs(C_linear_velocity_W_C[0]),B*fabs(C_linear_velocity_W_C[1])*C_linear_velocity_W_C[1],B*fabs(C_linear_velocity_W_C[2])*C_linear_velocity_W_C[2]);
+  ignition::math::Vector3d C_drag_W_C(B*C_linear_velocity_W_C[0]*fabs(C_linear_velocity_W_C[0]),B*fabs(C_linear_velocity_W_C[1])*C_linear_velocity_W_C[1],B*fabs(C_linear_velocity_W_C[2])*C_linear_velocity_W_C[2]);
   //Apply the force
   link_->AddRelativeForce(C_drag_W_C);
   // This function is called every Gazebo update cycle to apply forces and rotation to the body
-  common::Time cur_time = this->world_->GetSimTime();
+  common::Time cur_time = this->world_->SimTime();
   // Apply the body rotation based on IMU rotation speed Measurement
   // Angular rotation is applied in the body reference frame 
   this->model_->SetAngularVel(this->omega_body_frame_);
@@ -118,7 +118,7 @@ void BaseAttitude2Motion::onUpdate()
   double sum_of_forces = std::accumulate(gmMsg_thrust_.begin(), gmMsg_thrust_.end(), 0.0);
   // Project the sum of thrust forces in body z-axis
   
-  math::Vector3 total_thrust(0.0, 0.0, sum_of_forces);
+  ignition::math::Vector3d total_thrust(0.0, 0.0, sum_of_forces);
 
   // Apply a force to the link.
   link_->AddRelativeForce(total_thrust);

@@ -3,7 +3,7 @@
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
   <!-- Main multirotor link -->
   <xacro:macro name="multirotor_base_macro"
-    params="robot_namespace mass body_width body_height mesh_file mesh_file_mass *inertia">
+    params="robot_namespace mass body_width body_height mesh_file mesh_file_mass scale_factor *inertia">
     
     <link name="base_link"></link>
     <joint name="base_joint" type="fixed">
@@ -19,10 +19,10 @@
       </inertial>
 
       <visual>
-        <origin xyz="0 0 -0.65" rpy="0 0 0" />
+        <origin xyz="0 0 ${-0.65 * scale_factor}" rpy="0 0 0" />
         <geometry>
           <mesh filename="package://morus_description/meshes/${mesh_file}"
-            scale="0.001 0.001 0.001" />
+            scale="${0.001 * scale_factor} ${0.001 * scale_factor} ${0.001 * scale_factor}" />
           <!--box size="${body_width} ${body_width} ${body_height}"/--> <!-- [m] [m] [m] -->
         </geometry>
       </visual>
@@ -40,7 +40,7 @@
       <inertial>
         <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00001" iyz="0.0"
           izz="0.00001" />
-        <mass value="0.01" />  <!-- [kg] -->
+        <mass value="${0.01 * scale_factor}" />  <!-- [kg] -->
         <origin xyz="0 0 0" rpy="0 0 0" />
       </inertial>
     </link>
@@ -70,14 +70,14 @@
       <axis xyz="${x_axis} ${y_axis} ${z_axis}"/>
       <parent link="${parent}"/>
       <child link="movable_mass_${mass_number}"/>
-      <limit lower="-0.3" upper="0.3" effort="10000" velocity="20"/>
+      <limit lower="${-0.3 * scale_factor}" upper="${0.3 * scale_factor}" effort="10000" velocity="20"/>
       <dynamics damping="10" />  <!--friction="0.1" used only in Gazebo >= 5.0, damping is the viscous friction damping,
        i.e. Ft = damping * v -->
     </joint>
     <link name="movable_mass_${mass_number}">
       <visual>
         <!--origin rpy="0 0 ${orientation}" xyz="0 0 ${0*movable_mass_dimension/2}"/-->
-        <origin rpy="0 0 ${orientation}" xyz="0 0 -0.05"/>
+        <origin rpy="0 0 ${orientation}" xyz="0 0 ${-0.05 * scale_factor}"/>
         <geometry>
           <!--mesh filename="package://morus_description/meshes/${mesh_file_mass}"
             scale="1 1 1" /-->
@@ -126,13 +126,13 @@
         <geometry>
           <!-- <cylinder length="0.005" radius="${radius_rotor}"/> --> <!-- [m] -->
           <mesh filename="package://morus_description/meshes/propeller_${direction}.dae"
-            scale="0.0025 0.0025 0.0025" />
+            scale="${0.0025 * scale_factor} ${0.0025 * scale_factor} ${0.0025 * scale_factor}" />
           <!-- <box size="${2*radius_rotor} 0.01 0.005"/> -->
         </geometry>
       </visual>
       <collision>
         <geometry>
-          <cylinder length="0.005" radius="${radius_rotor}" /> <!-- [m] -->
+          <cylinder length="${0.005 * scale_factor}" radius="${radius_rotor}" /> <!-- [m] -->
         </geometry>
       </collision>
     </link>
@@ -203,11 +203,11 @@
   </xacro:macro>
 
    <!-- camera -->
-  <xacro:macro name="camera_macro" params="robot_namespace">
+  <xacro:macro name="camera_macro" params="robot_namespace scale_factor">
     <!-- joint -->
     <joint name="camera_joint" type="fixed">
       <axis xyz="0 1 0" />
-      <origin xyz="0 0 0.2" rpy="0 0 0" />
+      <origin xyz="0 0 ${0.2 * scale_factor}" rpy="0 0 0" />
       <parent link="base_link" />
       <child link="camera_link" />
     </joint>
@@ -217,20 +217,20 @@
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <box size="0.1 0.1 0.1" />
+          <box size="${0.1 * scale_factor} ${0.1 * scale_factor} ${0.1 * scale_factor}" />
         </geometry>
       </collision>
 
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <box size="0.1 0.1 0.1" />
+          <box size="${0.1 * scale_factor} ${0.1 * scale_factor} ${0.1 * scale_factor}" />
         </geometry>
         <material name="red" />
       </visual>
 
       <inertial>
-        <mass value="1e-5" />
+        <mass value="${1e-5 * scale_factor}" />
         <origin xyz="0 0 0" rpy="0 0 0" />
         <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
       </inertial>

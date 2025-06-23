@@ -11,7 +11,7 @@ GMStatus::GMStatus()
 
 GMStatus::~GMStatus()
 {
-    event::Events::DisconnectWorldUpdateBegin(this->updateConnection);
+    if (this->updateConnection) this->updateConnection.reset();
     if (this->rosnode_)
     { 
         this->rosnode_->shutdown();
@@ -110,7 +110,7 @@ void GMStatus::OnUpdate()
   // later published through ROS
   
   // First we need to measure DT
-  common::Time cur_time = this->world->GetSimTime();
+  common::Time cur_time = this->world->SimTime();
   sampling_time_ = cur_time.Double() - prev_sim_time_;
   prev_sim_time_ = cur_time.Double();
   // We measure the rotation of the rotor Gazebo joint
@@ -134,7 +134,7 @@ void GMStatus::OnUpdate()
   
   // For some reason one cannot simple gather force on rotor link
   // TO DO: Check why this is not working
-  //math::Vector3 force_on_rotor = this->link_->GetRelativeForce();
+  //ignition::math::Vector3d force_on_rotor = this->link_->GetRelativeForce();
   
   this->gm_status_msg.force_M = force;// force_on_rotor.z; // measured force in Newton
 
