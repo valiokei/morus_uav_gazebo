@@ -2,6 +2,10 @@
 
 
 <robot name="morus" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:arg name="base_link_name" default="base_link" />
+  <xacro:arg name="tf_prefix" default="" />
+  <xacro:property name="tf_prefix" value="$(arg tf_prefix)" />
+  <xacro:property name="base_link_name" value="$(arg base_link_name)" />
   <!-- Properties -->
   <xacro:property name="rotor_velocity_slowdown_sim" value="10" />
   <xacro:property name="mesh_file" value="MORUS_UAV_without_mass.dae" />
@@ -81,7 +85,10 @@
     body_width="${body_width}"
     body_height="${body_height}"
     mesh_file="${mesh_file}"
-    mesh_file_mass="${mesh_file_mass}">
+    mesh_file_mass="${mesh_file_mass}"
+    scale_factor="1.0"
+    base_link_name="${base_link_name}"
+    tf_prefix="${tf_prefix}">
     <xacro:insert_block name="body_inertia" />
   </xacro:multirotor_base_macro>
 
@@ -95,7 +102,8 @@
   </xacro:property>
 
   <xacro:landing_gear
-      parent="base_link"
+      parent="${base_link_name}"
+      tf_prefix="${tf_prefix}"
       gear_num = "1"
       mass = "1e-6"
       dim_x = "0.8"
@@ -106,7 +114,8 @@
   </xacro:landing_gear>
 
   <xacro:landing_gear
-      parent="base_link"
+      parent="${base_link_name}"
+      tf_prefix="${tf_prefix}"
       gear_num = "2"
       mass = "1e-6"
       dim_x = "0.8"

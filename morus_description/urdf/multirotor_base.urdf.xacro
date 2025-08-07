@@ -1,17 +1,32 @@
 <?xml version="1.0"?>
 
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <!-- Helper property to create link names with tf_prefix -->
+  <xacro:property name="link_prefix" value="${tf_prefix}" />
+  
   <!-- Main multirotor link -->
   <xacro:macro name="multirotor_base_macro"
-    params="robot_namespace mass body_width body_height mesh_file mesh_file_mass scale_factor *inertia">
+    params="robot_namespace mass body_width body_height mesh_file mesh_file_mass scale_factor base_link_name tf_prefix *inertia">
     
-    <link name="base_link"></link>
+    <!-- Create link names with tf_prefix -->
+    <xacro:if value="${tf_prefix != ''}">
+      <xacro:property name="prefixed_base_link" value="${tf_prefix}/${base_link_name}" />
+      <xacro:property name="prefixed_base_link_inertia" value="${tf_prefix}/${base_link_name}_inertia" />
+      <xacro:property name="prefixed_imu_link" value="${tf_prefix}/imu_link" />
+    </xacro:if>
+    <xacro:unless value="${tf_prefix != ''}">
+      <xacro:property name="prefixed_base_link" value="${base_link_name}" />
+      <xacro:property name="prefixed_base_link_inertia" value="${base_link_name}_inertia" />
+      <xacro:property name="prefixed_imu_link" value="imu_link" />
+    </xacro:unless>
+    
+    <link name="${prefixed_base_link}"></link>
     <joint name="base_joint" type="fixed">
       <origin xyz="0 0 0" rpy="0 0 0" />
-      <parent link="base_link" />
-      <child link="base_link_inertia" />
+      <parent link="${prefixed_base_link}" />
+      <child link="${prefixed_base_link_inertia}" />
     </joint>
-    <link name="base_link_inertia">
+    <link name="${prefixed_base_link_inertia}">
       <inertial>
         <mass value="${mass}" />  <!-- [kg] -->
         <origin xyz="0 0 0" />
@@ -36,7 +51,7 @@
     </link>
 
     <!-- IMU -->
-    <link name="imu_link">
+    <link name="${prefixed_imu_link}">
       <inertial>
         <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00001" iyz="0.0"
           izz="0.00001" />
@@ -47,8 +62,8 @@
     <!-- IMU joint -->
     <joint name="imu_joint" type="revolute">
       <!--origin xyz="0 0 0" rpy="3.1416 0 0" / -->
-      <parent link="base_link" />
-      <child link="imu_link" />
+      <parent link="${prefixed_base_link}" />
+      <child link="${prefixed_imu_link}" />
       <limit upper="0" lower="0" effort="0" velocity="0" />
     </joint>
     
@@ -56,7 +71,7 @@
     <gazebo>
       <plugin filename="librotors_gazebo_multirotor_base_plugin.so" name="rosbag">
         <robotNamespace>$(arg name)</robotNamespace>
-        <linkName>base_link</linkName>
+        <linkName>${prefixed_base_link}</linkName>
         <rotorVelocitySlowdownSim>${rotor_velocity_slowdown_sim}</rotorVelocitySlowdownSim>
       </plugin>
     </gazebo>
@@ -64,17 +79,27 @@
 
   <!-- Macro file for movable mass. It defines joint between mass and stick, and link which defines actual mass. Stick
   is defined in other macro file-->
-  <xacro:macro name="movable_mass" params="mass_number parent mass dimension color x_axis y_axis z_axis orientation *origin *inertia">
+  <xacro:macro name="movable_mass" params="mass_number parent tf_prefix mass dimension color x_axis y_axis z_axis orientation *origin *inertia">
+    <!-- Create prefixed link name -->
+    <xacro:if value="${tf_prefix != ''}">
+      <xacro:property name="prefixed_movable_mass" value="${tf_prefix}/movable_mass_${mass_number}" />
+      <xacro:property name="prefixed_parent" value="${tf_prefix}/${parent}" />
+    </xacro:if>
+    <xacro:unless value="${tf_prefix != ''}">
+      <xacro:property name="prefixed_movable_mass" value="movable_mass_${mass_number}" />
+      <xacro:property name="prefixed_parent" value="${parent}" />
+    </xacro:unless>
+    
     <joint name="stick_to_movable_mass_${mass_number}" type="prismatic">
       <xacro:insert_block name="origin"/>
       <axis xyz="${x_axis} ${y_axis} ${z_axis}"/>
-      <parent link="${parent}"/>
-      <child link="movable_mass_${mass_number}"/>
+      <parent link="${prefixed_parent}"/>
+      <child link="${prefixed_movable_mass}"/>
       <limit lower="${-0.3 * scale_factor}" upper="${0.3 * scale_factor}" effort="10000" velocity="20"/>
       <dynamics damping="10" />  <!--friction="0.1" used only in Gazebo >= 5.0, damping is the viscous friction damping,
        i.e. Ft = damping * v -->
     </joint>
-    <link name="movable_mass_${mass_number}">
+    <link name="${prefixed_movable_mass}">
       <visual>
         <!--origin rpy="0 0 ${orientation}" xyz="0 0 ${0*movable_mass_dimension/2}"/-->
         <origin rpy="0 0 ${orientation}" xyz="0 0 ${-0.05 * scale_factor}"/>
@@ -97,27 +122,38 @@
       </inertial>
     </link>
 
-    <gazebo reference="movable_mass_${mass_number}">
+    <gazebo reference="${prefixed_movable_mass}">
       <material>Gazebo/${color}</material>
     </gazebo>
   </xacro:macro>
 
   <!-- Rotor joint and link -->
   <xacro:macro name="vertical_rotor"
-    params="robot_namespace suffix direction motor_constant moment_constant parent mass_rotor radius_rotor time_constant_up time_constant_down max_rot_velocity motor_number rotor_drag_coefficient rolling_moment_coefficient color *origin *inertia">
+    params="robot_namespace suffix direction motor_constant moment_constant parent tf_prefix mass_rotor radius_rotor time_constant_up time_constant_down max_rot_velocity motor_number rotor_drag_coefficient rolling_moment_coefficient color *origin *inertia">
+    
+    <!-- Create prefixed link names -->
+    <xacro:if value="${tf_prefix != ''}">
+      <xacro:property name="prefixed_rotor" value="${tf_prefix}/rotor_${motor_number}" />
+      <xacro:property name="prefixed_parent" value="${tf_prefix}/${parent}" />
+    </xacro:if>
+    <xacro:unless value="${tf_prefix != ''}">
+      <xacro:property name="prefixed_rotor" value="rotor_${motor_number}" />
+      <xacro:property name="prefixed_parent" value="${parent}" />
+    </xacro:unless>
+    
     <joint name="rotor_${motor_number}_joint" type="continuous">
       <xacro:insert_block name="origin" />
       <axis xyz="0 0 1" />
       <!-- TODO(ff): not currently set because it's not yet supported -->
       <!-- <limit effort="2000" velocity="${max_rot_velocity}" /> -->
-      <parent link="${parent}" />
-      <child link="rotor_${motor_number}" />
+      <parent link="${prefixed_parent}" />
+      <child link="${prefixed_rotor}" />
 
     </joint>
     <!-- TODO(ff): not currently set because it's not yet supported -->
     <!-- <gazebo reference="rotor_${motor_number}_joint"> <axis> <xyz>0 0 1</xyz> 
       <limit> <velocity> ${max_rot_velocity} </velocity> </limit> </axis> </gazebo> -->
-    <link name="rotor_${motor_number}">
+    <link name="${prefixed_rotor}">
       <inertial>
         <mass value="${mass_rotor}" /> <!-- [kg] -->
         <xacro:insert_block name="inertia" />
@@ -139,7 +175,7 @@
     <gazebo>
       <plugin name="${suffix}_motor_model" filename="librotors_gazebo_motor_model.so">
         <jointName>rotor_${motor_number}_joint</jointName>
-        <linkName>rotor_${motor_number}</linkName>
+        <linkName>${prefixed_rotor}</linkName>
         <turningDirection>${direction}</turningDirection>
         <timeConstantUp>${time_constant_up}</timeConstantUp>
         <timeConstantDown>${time_constant_down}</timeConstantDown>
@@ -154,7 +190,7 @@
         <rotorVelocitySlowdownSim>${rotor_velocity_slowdown_sim}</rotorVelocitySlowdownSim>
       </plugin>
     </gazebo>
-    <gazebo reference="rotor_${motor_number}">
+    <gazebo reference="${prefixed_rotor}">
       <material>Gazebo/${color}</material>
     </gazebo>
   </xacro:macro>
@@ -173,14 +209,24 @@
     </transmission>
   </xacro:macro>
 
-  <xacro:macro name="landing_gear" params="gear_num parent mass dim_x dim_y dim_z *origin *inertia">
+  <xacro:macro name="landing_gear" params="gear_num parent tf_prefix mass dim_x dim_y dim_z *origin *inertia">
+    <!-- Create prefixed link names -->
+    <xacro:if value="${tf_prefix != ''}">
+      <xacro:property name="prefixed_landing_gear" value="${tf_prefix}/land_gear_${gear_num}" />
+      <xacro:property name="prefixed_parent" value="${tf_prefix}/${parent}" />
+    </xacro:if>
+    <xacro:unless value="${tf_prefix != ''}">
+      <xacro:property name="prefixed_landing_gear" value="land_gear_${gear_num}" />
+      <xacro:property name="prefixed_parent" value="${parent}" />
+    </xacro:unless>
+    
     <joint name="land_gear_${gear_num}" type="fixed">
       <xacro:insert_block name="origin"/>
       <axis xyz="0 0 1"/>
-      <parent link="${parent}"/>
-      <child link="land_gear_${gear_num}"/>
+      <parent link="${prefixed_parent}"/>
+      <child link="${prefixed_landing_gear}"/>
     </joint>
-    <link name="land_gear_${gear_num}">
+    <link name="${prefixed_landing_gear}">
       <!--visual>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
@@ -203,17 +249,27 @@
   </xacro:macro>
 
    <!-- camera -->
-  <xacro:macro name="camera_macro" params="robot_namespace scale_factor">
+  <xacro:macro name="camera_macro" params="robot_namespace scale_factor base_link_name tf_prefix">
+    <!-- Create prefixed link names -->
+    <xacro:if value="${tf_prefix != ''}">
+      <xacro:property name="prefixed_camera_link" value="${tf_prefix}/camera_link" />
+      <xacro:property name="prefixed_base_link" value="${tf_prefix}/${base_link_name}" />
+    </xacro:if>
+    <xacro:unless value="${tf_prefix != ''}">
+      <xacro:property name="prefixed_camera_link" value="camera_link" />
+      <xacro:property name="prefixed_base_link" value="${base_link_name}" />
+    </xacro:unless>
+    
     <!-- joint -->
     <joint name="camera_joint" type="fixed">
       <axis xyz="0 1 0" />
       <origin xyz="0 0 ${0.2 * scale_factor}" rpy="0 0 0" />
-      <parent link="base_link" />
-      <child link="camera_link" />
+      <parent link="${prefixed_base_link}" />
+      <child link="${prefixed_camera_link}" />
     </joint>
 
     <!-- link -->
-    <link name="camera_link">
+    <link name="${prefixed_camera_link}">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
@@ -235,7 +291,7 @@
         <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
       </inertial>
     </link>
-    <gazebo reference="camera_link">
+    <gazebo reference="${prefixed_camera_link}">
       <sensor type="camera" name="camera1">
         <update_rate>30.0</update_rate>
         <camera name="head">
@@ -261,7 +317,7 @@
           <cameraName>${robot_namespace}/camera1</cameraName>
           <imageTopicName>image_raw</imageTopicName>
           <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-          <frameName>camera_link</frameName>
+          <frameName>${prefixed_camera_link}</frameName>
           <hackBaseline>0.07</hackBaseline>
           <distortionK1>0.0</distortionK1>
           <distortionK2>0.0</distortionK2>
